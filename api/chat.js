@@ -104,10 +104,33 @@ export default async function handler(req, res) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ error: { message: 'Unknown error' } }));
-            console.error('ZAI API error:', errorData);
+            let errorMessage = `API request failed with status ${response.status}`;
+            try {
+                const errorData = await response.json();
+                console.error('ZAI API error:', errorData);
+                
+                // Handle different error response formats from ZAI API
+                if (errorData.error) {
+                    if (typeof errorData.error === 'string') {
+                        errorMessage = errorData.error;
+                    } else if (errorData.error.message) {
+                        errorMessage = errorData.error.message;
+                    } else if (errorData.error.code) {
+                        errorMessage = errorData.error.message || `${errorData.error.code}: Unknown error`;
+                    }
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                } else if (typeof errorData === 'string') {
+                    errorMessage = errorData;
+                }
+            } catch (parseError) {
+                // If response is not JSON, use status text
+                errorMessage = response.statusText || `API request failed with status ${response.status}`;
+                console.error('Failed to parse error response:', parseError);
+            }
+            
             return res.status(response.status).json({ 
-                error: errorData.error?.message || `API request failed with status ${response.status}` 
+                error: errorMessage
             });
         }
 

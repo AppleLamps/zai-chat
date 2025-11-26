@@ -549,10 +549,28 @@ async function sendChatMessage(message, onChunk = null, model = null) {
         });
 
         if (!response.ok) {
-            const errorData = await response.json();
+            let errorMessage = `API request failed with status ${response.status}`;
+            try {
+                const errorData = await response.json();
+                // Handle different error response formats
+                if (errorData.error) {
+                    if (typeof errorData.error === 'string') {
+                        errorMessage = errorData.error;
+                    } else if (errorData.error.message) {
+                        errorMessage = errorData.error.message;
+                    } else if (errorData.error.code) {
+                        errorMessage = `${errorData.error.code}: ${errorData.error.message || 'Unknown error'}`;
+                    }
+                } else if (errorData.message) {
+                    errorMessage = errorData.message;
+                }
+            } catch (parseError) {
+                // If response is not JSON, use status text
+                errorMessage = response.statusText || `API request failed with status ${response.status}`;
+            }
             // Remove the user message from history if request failed
             chatHistory.pop();
-            throw new Error(errorData.error || `API request failed with status ${response.status}`);
+            throw new Error(errorMessage);
         }
 
         // Handle streaming response
@@ -628,9 +646,20 @@ async function sendChatMessage(message, onChunk = null, model = null) {
         if (chatHistory.length > 0 && chatHistory[chatHistory.length - 1].role === 'user') {
             chatHistory.pop();
         }
-        if (error.message?.toLowerCase().includes('rate limit')) {
+        // Preserve specific error messages that should be shown to users
+        const errorMsg = error.message || '';
+        const lowerMsg = errorMsg.toLowerCase();
+        
+        if (lowerMsg.includes('rate limit') || lowerMsg.includes('429')) {
             throw error;
         }
+        
+        // Preserve account/balance errors
+        if (lowerMsg.includes('insufficient balance') || lowerMsg.includes('no resource package') || 
+            lowerMsg.includes('recharge') || lowerMsg.includes('quota')) {
+            throw error;
+        }
+        
         throw new Error(getUserFriendlyError(error));
     }
 }

@@ -67,6 +67,13 @@ function getUserFriendlyError(error) {
         return ErrorMessages.INVALID_IMAGE;
     }
     
+    // Account/balance errors - preserve the original message
+    if (message.includes('insufficient balance') || message.includes('no resource package') || 
+        message.includes('recharge') || message.includes('balance') || message.includes('quota')) {
+        // Return the original error message for account-related issues
+        return error?.message || error || ErrorMessages.UNKNOWN;
+    }
+    
     // Log original error for debugging
     console.error('Original error:', error);
     
