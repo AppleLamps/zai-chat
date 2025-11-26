@@ -260,9 +260,43 @@ document.addEventListener('DOMContentLoaded', function () {
         // Render chat model list
         renderChatModelList();
 
+        // Initialize default model names in UI
+        initializeModelNames();
+
         // Initialize Lucide icons
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
+        }
+    }
+
+    /**
+     * Initialize model names in the UI based on current model settings
+     */
+    function initializeModelNames() {
+        // Set generation model name
+        const generationModels = getAvailableModels();
+        const currentGenModel = getGenerationModel();
+        if (generationModels[currentGenModel]) {
+            selectedModelName.textContent = generationModels[currentGenModel].name;
+        }
+
+        // Set edit model name (edit uses vision models from chat models)
+        const chatModels = getAvailableChatModels();
+        const currentEditModelId = getEditModel();
+        if (chatModels[currentEditModelId]) {
+            selectedEditModelName.textContent = chatModels[currentEditModelId].name;
+        } else {
+            // Fallback to generation models if not found in chat models
+            const editModels = getAvailableModels();
+            if (editModels[currentEditModelId]) {
+                selectedEditModelName.textContent = editModels[currentEditModelId].name;
+            }
+        }
+
+        // Set chat model name
+        const currentChatModelId = getChatModel();
+        if (chatModels[currentChatModelId]) {
+            selectedChatModelName.textContent = chatModels[currentChatModelId].name;
         }
     }
 
